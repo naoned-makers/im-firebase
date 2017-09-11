@@ -1,0 +1,36 @@
+{
+    "im": {
+        "command": {
+            "leftarm": {
+                "move": {
+                    "origin": "im-firebase"
+                }
+            },
+            "rightarm": {
+                "move": {
+                    "origin": "im-firebase"
+                }
+            },
+            "lefthand": {
+                "move": {
+                    "origin": "im-firebase"
+                }
+            },
+            "righthand": {
+                "move": {
+                    "origin": "im-firebase"
+                }
+            },
+            "head": {
+                "move": {
+                    "origin": "im-firebase"
+                }
+            }
+        },
+        "event": {
+            "rpiheart": {
+                "init": "init"
+            }
+        }
+    }
+}
