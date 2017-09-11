@@ -3,34 +3,58 @@
 
 <head>
     <meta charset="utf-8" />
-    <title>Welcome to DevFest Nantes 2017</title>
-    <link rel="stylesheet" type="text/css" href="styles/styles.css">
+    <title>IM dashboard</title>
     <meta content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0' name='viewport' />
+    <script src="/__/firebase/4.3.0/firebase-app.js"></script>
+    <script src="/__/firebase/4.3.0/firebase-auth.js"></script>
+    <script src="/__/firebase/4.3.0/firebase-database.js"></script>
+    <script src="/__/firebase/init.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mustache.js/2.3.0/mustache.min.js"></script>
+    <script id="template" type="x-tmpl-mustache">
+        {{formatedDate}}<hr>
+        <a href="http://{{server.ip}}:{{server.httpPort}}/" target="command">Local web command</a>
+        <br>
+        <a href="http://{{server.ip}}:{{server.httpPort}}/simulator" target="command">Local web simulator</a>
+        <br>
+        <a href=" https://app.keymetrics.io/#/r/8km0ccrcentc7o5">pm2 internet dashboard</a>
+        <br><br>
+        Broker clients:
+        <ul> 
+        {{#brokerClients}}
+            <LI>{{.}}</LI>
+         {{/brokerClients}}
+        </ul>
+    </script>
+    <script>
+        firebase.database().ref('im/event/rpiheart/status')
+            .on('value', function (statusSnapshot) {
+                let status = statusSnapshot.val();
+                console.log(status);
+                status.formatedDate = function (){
+                    return new Date(this.ts);
+                };
+                var rendered = Mustache.render(document.getElementById("template").innerHTML,status);
+                document.getElementById("status").innerHTML = rendered;
+            });
+    </script>
 </head>
 
 <body>
-    <object id="legosvg" type="image/svg+xml" data="../img/ironman.svg" class="lego"></object>
+    <br/>
+    
+    <hr/>
+    <div id="status"></div>
+    <hr/>
+    <iframe width="350" height="430" src="https://console.api.ai/api-client/demo/embedded/27e568e7-cb65-43e1-8302-11f6a51157ad">
+    </iframe>
 
-    <script src="scripts/mqtt.min.js"></script>
-    <script src="scripts/touch.js"></script>
-    <script src="scripts/ws.js"></script>
 
-
-Affichage de l'ip du serveur avec un lien (et pourquoi pas la gestion wiif :-)
-Affichage des clients connecté/deconnecté
-
+    <!--
 // lib firebase/mqtt transparent
-
-<!-- a transparent glow that takes on the colour of the object it's applied to -->
-<filter id="glow">
-    <feGaussianBlur stdDeviation="2.5" result="coloredBlur"/>
-    <feMerge>
-        <feMergeNode in="coloredBlur"/>
-        <feMergeNode in="SourceGraphic"/>
-    </feMerge>
-</filter>
 big rectangle
 set 
+-->
+
 
 </body>
 

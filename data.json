@@ -29,7 +29,7 @@
         },
         "event": {
             "rpiheart": {
-                "init": "init"
+                "status": "init"
             }
         }
     }

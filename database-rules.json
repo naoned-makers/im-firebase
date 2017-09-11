@@ -2,7 +2,7 @@
   "rules": {
     "im":{
         "event": {
-          ".read": "auth != null",
+          ".read": true,
           ".write": "auth.uid === 'im-cloud'"
         },
         "command": {
