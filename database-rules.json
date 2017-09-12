@@ -1,14 +1,14 @@
 {
   "rules": {
-    "im":{
-        "event": {
-          ".read": true,
-          ".write": "auth.uid === 'im-cloud'"
-        },
-        "command": {
-          ".read": "auth != null",
-          ".write": "auth != null"
-        }
+    "im": {
+      "event": {
+        ".read": "auth != null",
+        ".write": "auth.uid === 'im-cloud'"
+      },
+      "command": {
+        ".read": "auth != null",
+        ".write": "auth != null"
       }
+    }
   }
 }

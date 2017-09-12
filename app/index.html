@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="utf-8" />
-    <title>IM dashboard</title>
+    <title>IM admin dashboard</title>
     <meta content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0' name='viewport' />
     <script src="/__/firebase/4.3.0/firebase-app.js"></script>
     <script src="/__/firebase/4.3.0/firebase-auth.js"></script>
@@ -11,44 +11,147 @@
     <script src="/__/firebase/init.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mustache.js/2.3.0/mustache.min.js"></script>
     <script id="template" type="x-tmpl-mustache">
-        {{formatedDate}}<hr>
-        <a href="http://{{server.ip}}:{{server.httpPort}}/" target="command">Local web command</a>
-        <br>
-        <a href="http://{{server.ip}}:{{server.httpPort}}/simulator" target="command">Local web simulator</a>
-        <br>
-        <a href=" https://app.keymetrics.io/#/r/8km0ccrcentc7o5">pm2 internet dashboard</a>
-        <br><br>
-        Broker clients:
-        <ul> 
-        {{#brokerClients}}
+        Last Seen {{formatedDate}} minutes
+        <hr/> {{server.hostname}} @ {{server.ip}}
+        <ul>
+            <li><a href="http://{{server.ip}}:{{server.httpPort}}/" target="command">Local web command</a></li>
+            <li><a href="http://{{server.ip}}:{{server.httpPort}}/simulator" target="simulator">Local web simulator</a></li>
+            <li><a href=" https://app.keymetrics.io/#/r/8km0ccrcentc7o5" target="supervisor">pm2 supervisor</a></li>
+        </ul>
+        <br/> Broker clients:
+        <ul>
+            {{#brokerClients}}
             <LI>{{.}}</LI>
-         {{/brokerClients}}
+            {{/brokerClients}}
         </ul>
     </script>
     <script>
-        firebase.database().ref('im/event/rpiheart/status')
-            .on('value', function (statusSnapshot) {
-                let status = statusSnapshot.val();
-                console.log(status);
-                status.formatedDate = function (){
-                    return new Date(this.ts);
-                };
-                var rendered = Mustache.render(document.getElementById("template").innerHTML,status);
-                document.getElementById("status").innerHTML = rendered;
+        function signinPopup() {
+            // To apply the default browser preference instead of explicitly setting it.
+            //firebase.auth().useDeviceLanguage();
+            // Using a popup.
+            var provider = new firebase.auth.GoogleAuthProvider();
+            firebase.auth().signInWithPopup(provider).then(function (result) {
+                // This gives you a Google Access Token.
+                var token = result.credential.accessToken;
+                // The signed-in user info.
+                var user = result.user;
+                console.log(user);
+                /*
+                displayName:"im Naoned-Makers"
+                email:"cloud.naoned.makers@gmail.com"
+                phoneNumber:null
+                photoURL:"https://lh3.googleusercontent.com/-XdUIqdMkCWA/AAAAAAAAAAI/AAAAAAAAAAA/4252rscbv5M/photo.jpg"
+                providerId:"google.com"
+                uid:"104296036095798578375"
+                */https://lh3.googleusercontent.com/-XdUIqdMkCWA/AAAAAAAAAAI/AAAAAAAAAAA/4252rscbv5M/photo.jpghttps://lh3.googleusercontent.com/-XdUIqdMkCWA/AAAAAAAAAAI/AAAAAAAAAAA/4252rscbv5M/photo.jpg
+                displayBrokerInfo();
             });
+        }
+        function handleSignRedirect(cb) {
+            firebase.auth().getRedirectResult().then(function (result) {
+                if (result.credential) {
+                    // This gives you a Google Access Token. You can use it to access the Google API.
+                    var token = result.credential.accessToken;
+                    // ...
+                }
+                //firebase.auth().
+                // The signed-in user info.
+                console.log(result.user, result);
+                cb(result.user);
+            }).catch(function (error) {
+                // Handle Errors here.
+                var errorCode = error.code;
+                var errorMessage = error.message;
+                // The email of the user's account used.
+                var email = error.email;
+                // The firebase.auth.AuthCredential type that was used.
+                var credential = error.credential;
+                // ...
+            });
+        }
+
+
+        firebase.auth().onAuthStateChanged(function (user) {
+            if (user) {
+                console.log(" User is signed in.");
+                displayBrokerInfo();
+            } else {
+                console.log(" No user is signed in.");
+                //start auth process
+                firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL)
+                    .then(function () {
+                        signinPopup();
+                    });
+            }
+        });
+
+
+
+        function displayBrokerInfo() {
+            //Broker status
+            firebase.database().ref('im/event/rpiheart/status')
+                .on('value', function (statusSnapshot) {
+                    let status = statusSnapshot.val();
+                    status.formatedDate = function () {
+                        return Math.round((Date.now() - this.ts) / 60000);
+                    };
+                    var rendered = Mustache.render(document.getElementById("template").innerHTML, status);
+                    document.getElementById("status").innerHTML = rendered;
+                });
+            //Last Command
+            firebase.database().ref('im/command').on('child_added', function (entitySnapshot) {
+                var entity = entitySnapshot.key;
+                entitySnapshot.ref.on('child_changed', function (entityCommandSnapshot) {
+                    let commandType = entityCommandSnapshot.key;//move
+                    let playload = entityCommandSnapshot.val();// { origin: 'im-cloud' }
+                    let topic = "im/command/" + entity + "/" + commandType;
+                    console.log('Firebase changed ' + topic, playload);
+                    document.querySelector('#liveCommand').innerHTML='<hr/>'+topic + '  '+JSON.stringify(playload);
+                });
+            });
+
+            firebase.database().ref('im/event/rpiheart/status')
+                .on('value', function (statusSnapshot) {
+                    let status = statusSnapshot.val();
+                    status.formatedDate = function () {
+                        return Math.round((Date.now() - this.ts) / 60000);
+                    };
+                    var rendered = Mustache.render(document.getElementById("template").innerHTML, status);
+                    document.getElementById("status").innerHTML = rendered;
+                });
+        }
+
+        window.addEventListener('WebComponentsReady', function () {
+            var cameraMock = document.querySelector('#cameraMock');
+            //trackStart
+            //trackEnd
+            cameraMock.addEventListener('value-change', function () {
+                document.querySelector('#cameraMock').textContent = cameraMock.value;
+
+                firebase.database().ref("im/command/head/facetrackmove").set({ origin: 'cammock', absPosition: cameraMock.value }).catch(function (error) {
+                    // Uh-oh, an error occurred!
+                    console.log('error', error);
+                });
+            });
+            cameraMock.addEventListener('trackStart', console.log);
+        });
     </script>
 </head>
 
 <body>
     <br/>
-    
-    <hr/>
     <div id="status"></div>
+    <div id="liveCommand"></div>
     <hr/>
     <iframe width="350" height="430" src="https://console.api.ai/api-client/demo/embedded/27e568e7-cb65-43e1-8302-11f6a51157ad">
     </iframe>
-
-
+    <hr/><br/>
+    <base href="https://raw-dot-custom-elements.appspot.com/PolymerElements/paper-slider/v2.0.2/paper-slider/">
+    <script src="../webcomponentsjs/webcomponents-lite.js"></script>
+    <link rel="import" href="paper-slider.html">
+    <div>CameraMock: <span id="cameraMockLabel" class="caption"></span></div>
+    <paper-slider id="cameraMock" min="0" value="50" max="100" pin step="5" style="width:100%"></paper-slider>
     <!--
 // lib firebase/mqtt transparent
 big rectangle
