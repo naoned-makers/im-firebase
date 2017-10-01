@@ -93,33 +93,18 @@
             firebase.database().ref('im/event/rpiheart/status')
                 .on('value', function (statusSnapshot) {
                     let status = statusSnapshot.val();
+		if(!status.offline){
                     status.formatedDate = function () {
                         return Math.round((Date.now() - this.ts) / 60000);
                     };
                     var rendered = Mustache.render(document.getElementById("template").innerHTML, status);
+}else{
+ var rendered= "<H1>Offline since "+Math.round((Date.now() - status.offline) / 60000)+" minutes</H1>";
+}
                     document.getElementById("status").innerHTML = rendered;
                 });
-            //Last Command
-            firebase.database().ref('im/command').on('child_added', function (entitySnapshot) {
-                var entity = entitySnapshot.key;
-                entitySnapshot.ref.on('child_changed', function (entityCommandSnapshot) {
-                    let commandType = entityCommandSnapshot.key;//move
-                    let playload = entityCommandSnapshot.val();// { origin: 'im-cloud' }
-                    let topic = "im/command/" + entity + "/" + commandType;
-                    console.log('Firebase changed ' + topic, playload);
-                    document.querySelector('#liveCommand').innerHTML='<hr/>'+topic + '  '+JSON.stringify(playload);
-                });
-            });
-
-            firebase.database().ref('im/event/rpiheart/status')
-                .on('value', function (statusSnapshot) {
-                    let status = statusSnapshot.val();
-                    status.formatedDate = function () {
-                        return Math.round((Date.now() - this.ts) / 60000);
-                    };
-                    var rendered = Mustache.render(document.getElementById("template").innerHTML, status);
-                    document.getElementById("status").innerHTML = rendered;
-                });
+            //Last acivity
+            //document.querySelector('#liveCommand').innerHTML='<hr/>'+topic + '  '+JSON.stringify(playload);
         }
 
         window.addEventListener('WebComponentsReady', function () {

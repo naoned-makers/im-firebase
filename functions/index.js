@@ -1,3 +1,4 @@
+'use strict';
 // The Cloud Functions for Firebase SDK to create Cloud Functions and setup triggers.
 const functions = global.functions || require('firebase-functions');
 const firebase = global.firebase || require('firebase');
@@ -20,20 +21,22 @@ exports.webhook = functions.https.onRequest((req, res) => {
     const clientId = req.get('X-Client-ID');
     const tokenId = req.get('Authorization');
     if (clientId == functions.config().client.id && tokenId == 'Bearer ' + functions.config().client.key) {
-        const webHookResponse = buildWebHookResponse(req.body.result.metadata.intentName, req.body.result.action, req.body.result.parameters, req.body.result.fulfillment, req.body.originalRequest);
+        const webHookResponse = buildWebHookResponse(req.body.result.metadata.intentName, req.body.result.action, req.body.result.parameters, req.body.result.fulfillment, req.body.originalRequest, req.body.result.resolvedQuery);
 
         // Push the command in the right path
         admin.database()
             .ref(webHookResponse.commandPath)
-            .set(webHookResponse.commandPlayLoad)
+            .set(webHookResponse.commandPayLoad)
             .then(snapshot => {
+                console.log(req.body);
+                console.log(webHookResponse);
                 //TODO try not wait firebase response before api.ai response
                 res.setHeader('Content-Type', 'application/json'); //Requires application/json MIME type
                 res.send(JSON.stringify({
                     "source": "im-function",      //response data origin: internal code logic
                     "speech": webHookResponse.speech, //"speech" is the spoken version of the response
-                    "displayText": webHookResponse.displayText,  //"displayText" is the visual version
-                    "data": webHookResponse.data
+                    // "displayText": webHookResponse.displayText,  //"displayText" is the visual version
+                    // "data": webHookResponse.data
                 }));
             });
     } else {
@@ -53,34 +56,55 @@ exports.webhook = functions.https.onRequest((req, res) => {
 * @param {Object} originSource the original incoming request to the bot
 * @return {Object} webHookResponse firebase and api.ai reponse data
 */
-function buildWebHookResponse(intentName, intentAction, intentParameter, apiaiUserResponse, originalRequest) {
+function buildWebHookResponse(intentName, intentAction, intentParameter, apiaiUserResponse, originalRequest, resolvedQuery) {
 
-    console.log('apiaiUserResponse',apiaiUserResponse);
+    console.log('apiaiUserResponse', apiaiUserResponse);
     //originalRequest is undefined if the user is on api.ai ( test or web demo)
-    if(!originalRequest){
-        originalRequest = {source:'api.ai'}
+    if (!originalRequest) {
+        originalRequest = { source: 'api.ai' }
     }
-    console.log('originalRequest',originalRequest);
-    
+
     let webHookResponse = {};
     if (intentName == 'sidepartmove') {
         //For MQTT broker throw firebase
         let entityCommand = intentParameter.side + intentParameter.sidepart + '/move';
         webHookResponse.commandPath = '/im/command/' + entityCommand;
-        webHookResponse.commandPlayLoad = { origin: originalRequest.source, ts:Date.now() };
         //TODO remove entityCommand
-        webHookResponse.speech = entityCommand+'->'+apiaiUserResponse.speech;
-        webHookResponse.displayText = entityCommand;
+        webHookResponse.speech = entityCommand + '->' + apiaiUserResponse.speech;
     } else {
+        //For MQTT broker throw firebase
         webHookResponse.commandPath = '/im/command/' + intentAction;
-        webHookResponse.commandPlayLoad = { origin: originalRequest.source, ts:Date.now() };
-        //TODO remove entityCommand
-        webHookResponse.speech = intentAction+'->'+apiaiUserResponse.speech;
-        webHookResponse.displayText = intentAction;
+        //TODO remove intentAction
+        webHookResponse.speech = intentAction + '->' + apiaiUserResponse.speech
     }
-    //TODO for specific intégration
-    webHookResponse.data = {
-        "slack": { "text": "Ok Slack" } //put here the slack integration reponse exemple color,
+    webHookResponse.commandPayLoad = {
+        origin: originalRequest.source,
+        intent: intentName,
+        parameter: intentParameter,
+        request: resolvedQuery,
+        response: apiaiUserResponse.speech,
+        messages: apiaiUserResponse.messages,
+        ts: Date.now()
     };
+    //webHookResponse.displayText = entityCommand;
+    //webHookResponse.data = {
+    //    "slack": { "text": entityCommand } //put here the slack integration reponse exemple color,
+    //};
     return webHookResponse;
+    /** 
+{
+    speech: 'Doucement sur mon ciboulot',   //Text to be pronounced to the user / shown on the screen
+        messages: 
+    [{
+        type: 0,                                //Equals to 0 for the Text response message type, Equals to 2 for the Quick replies message type.
+        platform: 'slack',
+        speech: 'Doucement sur mon ciboulot'    //Agent's text reply. 
+    },
+    { type: 0, 
+        platform: 'slack',
+         speech: 'For Slack' },
+    { type: 0, 
+        speech: 'Arrêtes, j\'ai mal au crâne' }]
+}
+*/
 }
