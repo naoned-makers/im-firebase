@@ -70,12 +70,12 @@ function buildWebHookResponse(intentName, intentAction, intentParameter, apiaiUs
         let entityCommand = intentParameter.side + intentParameter.sidepart + '/move';
         webHookResponse.commandPath = '/im/command/' + entityCommand;
         //TODO remove entityCommand
-        webHookResponse.speech = entityCommand + '->' + apiaiUserResponse.speech;
+        webHookResponse.speech = apiaiUserResponse.speech;
     } else {
         //For MQTT broker throw firebase
         webHookResponse.commandPath = '/im/command/' + intentAction;
         //TODO remove intentAction
-        webHookResponse.speech = intentAction + '->' + apiaiUserResponse.speech
+        webHookResponse.speech = apiaiUserResponse.speech
     }
     webHookResponse.commandPayLoad = {
         origin: originalRequest.source,
