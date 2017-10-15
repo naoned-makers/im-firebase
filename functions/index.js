@@ -18,9 +18,16 @@ exports.webhook = functions.https.onRequest((req, res) => {
     //Ansure the incoming request is from an authorized client
     //Check that the header 'X-Client-ID''apiai',
     //Check that the header 'Authorization': `Bearer <apiai.key>`
-    const clientId = req.get('X-Client-ID');
-    const tokenId = req.get('Authorization');
-    if (clientId == functions.config().client.id && tokenId == 'Bearer ' + functions.config().client.key) {
+    var clientId = req.get('X-Client-ID');
+    var tokenId = req.get('Authorization');
+    if(!clientId){
+        clientId =  request.query.X-Client-ID
+    }
+    if(!tokenId){
+        tokenId = req.query.Authorization;
+    }
+
+    if (tokenId == 'Bearer ' + functions.config().client.key) {
         const webHookResponse = buildWebHookResponse(req.body.result.metadata.intentName, req.body.result.action, req.body.result.parameters, req.body.result.fulfillment, req.body.originalRequest, req.body.result.resolvedQuery);
 
         // Push the command in the right path
